@@ -1,0 +1,26 @@
+let
+	var n: Integer;
+	var m: Integer;
+	var l: Integer;
+
+	proc factorial(var i: Integer, var j: Integer) ~
+		begin
+		n := 1;
+		if j < 1 then
+			j := 1
+		else 
+			begin 
+			end;! skip
+		while i > j do
+			begin
+			n := n * i;
+			i := i - 1
+			end;
+		putint(n)
+		end
+in
+	begin
+	m := 6;
+	l := 3;
+	factorial(var m, var l)
+	end
