@@ -1,9 +1,10 @@
 let
 	var n: Integer;
-	var m: Integer;
-	var l: Integer;
+	var x: Integer;
+	var y: Integer;
+	var z: Integer;
 
-	proc factorial(var i: Integer: var j:Integer ~ 1) ~
+	proc factorial(var i: Integer, var j: Integer, var k:Integer: var l:Integer ~ 1, var m:Integer ~ 2) ~
 		begin
 		n := 1;
 		if j < 1 then
@@ -20,7 +21,8 @@ let
 		end
 in
 	begin
-	m := 6;
-	l := 3;
-	factorial(var m, var l)
+	x := 8;
+	y := 2;
+	z := 12;
+	factorial(var x, var y, var z)
 	end

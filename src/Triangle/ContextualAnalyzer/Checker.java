@@ -16,6 +16,7 @@ package Triangle.ContextualAnalyzer;
 
 import Triangle.ErrorReporter;
 import Triangle.StdEnvironment;
+import Triangle.AbstractSyntaxTrees.ActualParameterSequence;
 import Triangle.AbstractSyntaxTrees.AnyTypeDenoter;
 import Triangle.AbstractSyntaxTrees.ArrayExpression;
 import Triangle.AbstractSyntaxTrees.ArrayTypeDenoter;
@@ -114,7 +115,7 @@ public final class Checker implements Visitor {
     if (binding == null)
       reportUndeclared(ast.I);
     else if (binding instanceof ProcDeclaration) {
-      ast.APS.visit(this, ((ProcDeclaration) binding).FPS, ((ProcDeclaration) binding).DPS);
+      ast.APS = (ActualParameterSequence) ast.APS.visit(this, ((ProcDeclaration) binding).FPS, ((ProcDeclaration) binding).DPS);
     } else if (binding instanceof ProcFormalParameter) {
       ast.APS.visit(this, ((ProcFormalParameter) binding).FPS);
     } else
@@ -206,7 +207,7 @@ public final class Checker implements Visitor {
       reportUndeclared(ast.I);
       ast.type = StdEnvironment.errorType;
     } else if (binding instanceof FuncDeclaration) {
-      ast.APS.visit(this, ((FuncDeclaration) binding).FPS, ((FuncDeclaration) binding).DPS);
+      ast.APS = (ActualParameterSequence) ast.APS.visit(this, ((FuncDeclaration) binding).FPS, ((FuncDeclaration) binding).DPS);
       ast.type = ((FuncDeclaration) binding).T;
     } else if (binding instanceof FuncFormalParameter) {
       ast.APS.visit(this, ((FuncFormalParameter) binding).FPS);
@@ -485,7 +486,7 @@ public final class Checker implements Visitor {
   public Object visitConstActualParameter(ConstActualParameter ast, Object o) {
     FormalParameter fp = (FormalParameter) o;
     TypeDenoter eType = (TypeDenoter) ast.E.visit(this, null);
-
+    //new Throwable().printStackTrace();
     if (! (fp instanceof ConstFormalParameter))
       reporter.reportError ("const actual parameter not expected here", "",
                             ast.position);
@@ -609,8 +610,24 @@ public final class Checker implements Visitor {
     DefaultParameterSequence dps = (DefaultParameterSequence) o1;
     if (! (fps instanceof EmptyFormalParameterSequence))
       reporter.reportError ("too few actual parameters", "", ast.position);
-    return null;
-  }
+    
+    //apply entirety of dps to aps
+    ActualParameterSequence apsAST = convertDPSToAPS(dps, ast.position);
+    return apsAST;
+  }//  will either have an empty APS of a chain of multiple APS's capped off by a single APS
+  
+  public ActualParameterSequence convertDPSToAPS(DefaultParameterSequence dps, SourcePosition thePosition){
+	  if(dps instanceof EmptyDefaultParameterSequence){
+		  return new EmptyActualParameterSequence(thePosition);
+	  }else if(dps instanceof SingleDefaultParameterSequence){
+		  ConstActualParameter cAP = new ConstActualParameter( ((SingleDefaultParameterSequence)dps).E, thePosition);
+		  return new SingleActualParameterSequence(cAP, thePosition);
+	  }else{
+		  ConstActualParameter cAP = new ConstActualParameter( ((MultipleDefaultParameterSequence)dps).E, thePosition);
+		  ActualParameterSequence APS = convertDPSToAPS(((MultipleDefaultParameterSequence)dps).DPS, thePosition);
+		  return new MultipleActualParameterSequence(cAP, APS, thePosition);
+	  }
+  } //converts dps into corresponding aps, uses same position for all parameters
 
   //accepts FPS AND DPS, needs to check FPS has more FP's or FPS is empty but DPS has more FP's
   public Object visitMultipleActualParameterSequence(MultipleActualParameterSequence ast, Object o, Object o1) {
@@ -621,20 +638,20 @@ public final class Checker implements Visitor {
     		reporter.reportError ("too many actual parameters", "", ast.position);
     	}else{
             ast.AP.visit(this, ((MultipleDefaultParameterSequence) dps).FP);
-            ast.APS.visit(this, fps, ((MultipleDefaultParameterSequence) dps).DPS);
+            ast.APS = (ActualParameterSequence) ast.APS.visit(this, fps, ((MultipleDefaultParameterSequence) dps).DPS);
     	}
     }else if(fps instanceof SingleFormalParameterSequence){
     	if(dps instanceof EmptyDefaultParameterSequence){
     		reporter.reportError ("too many actual parameters", "", ast.position);
     	}else{
             ast.AP.visit(this, ((SingleFormalParameterSequence) fps).FP);
-            ast.APS.visit(this, new EmptyFormalParameterSequence(null), dps);
+            ast.APS = (ActualParameterSequence) ast.APS.visit(this, new EmptyFormalParameterSequence(null), dps);
     	}
     }else{
         ast.AP.visit(this, ((MultipleFormalParameterSequence) fps).FP);
-        ast.APS.visit(this, ((MultipleFormalParameterSequence) fps).FPS, dps);
+        ast.APS = (ActualParameterSequence) ast.APS.visit(this, ((MultipleFormalParameterSequence) fps).FPS, dps);
     }
-    return null;
+    return ast;
   }
 
   //accepts FPS AND DPS, needs to check FPS has one more FP in it OR FPS is empty and DPS has one more FP
@@ -643,18 +660,29 @@ public final class Checker implements Visitor {
     DefaultParameterSequence dps = (DefaultParameterSequence) o1;
     if (fps instanceof MultipleFormalParameterSequence){
       reporter.reportError ("not enough actual parameters", "", ast.position);
+      return null;
     }else if(fps instanceof EmptyFormalParameterSequence){
     	if(dps instanceof EmptyDefaultParameterSequence){
     		reporter.reportError ("Too many actual parameters", "", ast.position);
+    		return null;
     	}else if(dps instanceof SingleDefaultParameterSequence){
     		ast.AP.visit(this, ((SingleDefaultParameterSequence) dps).FP);
+    		return ast;
     	}else{
     		ast.AP.visit(this, ((MultipleDefaultParameterSequence) dps).FP);
+    		//convert remaining DP's into AP's
+    		ActualParameterSequence apsAST = convertDPSToAPS( ((MultipleDefaultParameterSequence)dps).DPS, ast.position);
+  		    return new MultipleActualParameterSequence(ast.AP, apsAST, ast.position);
     	}
     }else{
       ast.AP.visit(this, ((SingleFormalParameterSequence) fps).FP);
+      if(dps instanceof EmptyDefaultParameterSequence){
+    	  return ast;
+      }else{
+    	  ActualParameterSequence apsAST = convertDPSToAPS(dps, ast.position);
+		  return new MultipleActualParameterSequence(ast.AP, apsAST, ast.position);
+      }
     }
-    return null;
   }
 
   // Type Denoters

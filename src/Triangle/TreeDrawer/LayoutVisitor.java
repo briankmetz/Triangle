@@ -297,6 +297,18 @@ public class LayoutVisitor implements Visitor {
   public Object visitSingleActualParameterSequence(SingleActualParameterSequence ast, Object obj) {
     return layoutUnary("Sing.A.P.S.", ast.AP);
   }
+  
+  public Object visitEmptyActualParameterSequence(EmptyActualParameterSequence ast, Object obj, Object obj1) {
+    return layoutNullary("EmptyA.P.S.");
+  }
+
+  public Object visitMultipleActualParameterSequence(MultipleActualParameterSequence ast, Object obj, Object obj1) {
+    return layoutBinary("Mult.A.P.S.", ast.AP, ast.APS);
+  }
+  
+  public Object visitSingleActualParameterSequence(SingleActualParameterSequence ast, Object obj, Object obj1) {
+    return layoutUnary("Sing.A.P.S.", ast.AP);
+  }
 
 
   // Type Denoters

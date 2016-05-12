@@ -40,9 +40,11 @@ import Triangle.AbstractSyntaxTrees.ConstActualParameter;
 import Triangle.AbstractSyntaxTrees.ConstDeclaration;
 import Triangle.AbstractSyntaxTrees.ConstFormalParameter;
 import Triangle.AbstractSyntaxTrees.Declaration;
+import Triangle.AbstractSyntaxTrees.DefaultParameterSequence;
 import Triangle.AbstractSyntaxTrees.DotVname;
 import Triangle.AbstractSyntaxTrees.EmptyActualParameterSequence;
 import Triangle.AbstractSyntaxTrees.EmptyCommand;
+import Triangle.AbstractSyntaxTrees.EmptyDefaultParameterSequence;
 import Triangle.AbstractSyntaxTrees.EmptyExpression;
 import Triangle.AbstractSyntaxTrees.EmptyFormalParameterSequence;
 import Triangle.AbstractSyntaxTrees.ErrorTypeDenoter;
@@ -59,6 +61,7 @@ import Triangle.AbstractSyntaxTrees.LetCommand;
 import Triangle.AbstractSyntaxTrees.LetExpression;
 import Triangle.AbstractSyntaxTrees.MultipleActualParameterSequence;
 import Triangle.AbstractSyntaxTrees.MultipleArrayAggregate;
+import Triangle.AbstractSyntaxTrees.MultipleDefaultParameterSequence;
 import Triangle.AbstractSyntaxTrees.MultipleFieldTypeDenoter;
 import Triangle.AbstractSyntaxTrees.MultipleFormalParameterSequence;
 import Triangle.AbstractSyntaxTrees.MultipleRecordAggregate;
@@ -75,6 +78,7 @@ import Triangle.AbstractSyntaxTrees.SimpleTypeDenoter;
 import Triangle.AbstractSyntaxTrees.SimpleVname;
 import Triangle.AbstractSyntaxTrees.SingleActualParameterSequence;
 import Triangle.AbstractSyntaxTrees.SingleArrayAggregate;
+import Triangle.AbstractSyntaxTrees.SingleDefaultParameterSequence;
 import Triangle.AbstractSyntaxTrees.SingleFieldTypeDenoter;
 import Triangle.AbstractSyntaxTrees.SingleFormalParameterSequence;
 import Triangle.AbstractSyntaxTrees.SingleRecordAggregate;
@@ -293,6 +297,7 @@ public final class Encoder implements Visitor {
     else {
       Frame frame1 = new Frame(frame.level + 1, 0);
       argsSize = ((Integer) ast.FPS.visit(this, frame1)).intValue();
+      argsSize += ((Integer) ast.DPS.visit(this, frame1)).intValue();
       Frame frame2 = new Frame(frame.level + 1, Machine.linkDataSize);
       valSize = ((Integer) ast.E.visit(this, frame2)).intValue();
     }
@@ -315,6 +320,7 @@ public final class Encoder implements Visitor {
     else {
       Frame frame1 = new Frame(frame.level + 1, 0);
       argsSize = ((Integer) ast.FPS.visit(this, frame1)).intValue();
+      argsSize += ((Integer) ast.DPS.visit(this, frame1)).intValue();
       Frame frame2 = new Frame(frame.level + 1, Machine.linkDataSize);
       ast.C.visit(this, frame2);
     }
@@ -442,6 +448,25 @@ public final class Encoder implements Visitor {
 	 SingleFormalParameterSequence ast, Object o) {
     return ast.FP.visit (this, o);
   }
+  
+  public Object visitEmptyDefaultParameterSequence(
+	 EmptyDefaultParameterSequence ast, Object o) {
+    return new Integer(0);
+  }
+
+  public Object visitMultipleDefaultParameterSequence(
+ 	 MultipleDefaultParameterSequence ast, Object o) {
+    Frame frame = (Frame) o;
+    int argsSize1 = ((Integer) ast.DPS.visit(this, frame)).intValue();
+    Frame frame1 = new Frame(frame, argsSize1);
+    int argsSize2 = ((Integer) ast.FP.visit(this, frame1)).intValue();
+    return new Integer(argsSize1 + argsSize2);
+  }
+
+  public Object visitSingleDefaultParameterSequence(
+	 SingleDefaultParameterSequence ast, Object o) {
+    return ast.FP.visit (this, o);
+  }
 
 
   // Actual Parameters
@@ -513,6 +538,25 @@ public final class Encoder implements Visitor {
 	 SingleActualParameterSequence ast, Object o) {
     return ast.AP.visit (this, o);
   }
+  
+  public Object visitEmptyActualParameterSequence(
+	 EmptyActualParameterSequence ast, Object o, Object o2) {
+    return new Integer(0);
+  }// does nothing different, never called, needs to exist for weird reason
+  
+  public Object visitMultipleActualParameterSequence(
+	 MultipleActualParameterSequence ast, Object o, Object o2) {
+    Frame frame = (Frame) o;
+    int argsSize1 = ((Integer) ast.AP.visit(this, frame)).intValue();
+    Frame frame1 = new Frame (frame, argsSize1);
+    int argsSize2 = ((Integer) ast.APS.visit(this, frame1)).intValue();
+    return new Integer(argsSize1 + argsSize2);
+  }// does nothing different, never called, needs to exist for weird reason
+  
+  public Object visitSingleActualParameterSequence(
+	 SingleActualParameterSequence ast, Object o, Object o2) {
+    return ast.AP.visit (this, o);
+  }// does nothing different, never called, needs to exist for weird reason
 
 
   // Type Denoters
