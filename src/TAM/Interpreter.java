@@ -444,6 +444,7 @@ public class Interpreter {
     CP = CB;
     status = running;
     do {
+    	//dump();
       // Fetch instruction ...
       currentInstr = Machine.code[CP];
       // Decode instruction ...

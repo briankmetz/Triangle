@@ -296,10 +296,11 @@ public final class Encoder implements Visitor {
       reporter.reportRestriction("can't nest routines more than 7 deep");
     else {
       Frame frame1 = new Frame(frame.level + 1, 0);
-      argsSize = ((Integer) ast.FPS.visit(this, frame1)).intValue();
-      argsSize += ((Integer) ast.DPS.visit(this, frame1)).intValue();
-      Frame frame2 = new Frame(frame.level + 1, Machine.linkDataSize);
-      valSize = ((Integer) ast.E.visit(this, frame2)).intValue();
+      argsSize = ((Integer) ast.DPS.visit(this, frame1)).intValue();
+      Frame frame2 = new Frame(frame.level + 1, argsSize);
+      argsSize += ((Integer) ast.FPS.visit(this, frame2)).intValue();
+      Frame frame3 = new Frame(frame.level + 1, Machine.linkDataSize);
+      valSize = ((Integer) ast.E.visit(this, frame3)).intValue();
     }
     emit(Machine.RETURNop, valSize, 0, argsSize);
     patch(jumpAddr, nextInstrAddr);
@@ -319,10 +320,13 @@ public final class Encoder implements Visitor {
       reporter.reportRestriction("can't nest routines so deeply");
     else {
       Frame frame1 = new Frame(frame.level + 1, 0);
-      argsSize = ((Integer) ast.FPS.visit(this, frame1)).intValue();
-      argsSize += ((Integer) ast.DPS.visit(this, frame1)).intValue();
-      Frame frame2 = new Frame(frame.level + 1, Machine.linkDataSize);
-      ast.C.visit(this, frame2);
+      argsSize = ((Integer) ast.DPS.visit(this, frame1)).intValue();
+      //
+      Frame frame2 = new Frame(frame.level + 1, argsSize);
+      argsSize += ((Integer) ast.FPS.visit(this, frame2)).intValue();
+      //
+      Frame frame3 = new Frame(frame.level + 1, Machine.linkDataSize);
+      ast.C.visit(this, frame3);
     }
     emit(Machine.RETURNop, 0, 0, argsSize);
     patch(jumpAddr, nextInstrAddr);
@@ -889,6 +893,8 @@ public final class Encoder implements Visitor {
     nextInstr.n = n;
     nextInstr.r = r;
     nextInstr.d = d;
+    //System.out.println(op + " " + r + " " + n + " " + d);
+    //new Throwable().printStackTrace();
     if (nextInstrAddr == Machine.PB)
       reporter.reportRestriction("too many instructions for code segment");
     else {
@@ -1000,7 +1006,7 @@ public final class Encoder implements Visitor {
     } else if (baseObject instanceof UnknownAddress) {
       ObjectAddress address = ((UnknownAddress) baseObject).address;
       emit(Machine.LOADop, Machine.addressSize, displayRegister(frame.level,
-           address.level), address.displacement);
+           address.level), address.displacement); //somehow need to add argSize of DPS to address.displacement
       if (V.indexed)
         emit(Machine.CALLop, Machine.SBr, Machine.PBr, Machine.addDisplacement);
       if (V.offset != 0) {

@@ -1,0 +1,16 @@
+let
+	var n: Integer;
+	var x: Integer;
+
+	proc mult(var i: Integer, j:Integer) ~
+		begin
+		n := i * j;
+		putint(n);
+		end
+in
+	begin
+	x := 6;
+
+	mult(var x, 2);
+	mult(var x, 5)
+	end
